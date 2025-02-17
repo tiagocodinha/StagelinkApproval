@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from './lib/supabase';
-import { LogIn, LogOut, Check, X, Plus, Image, Video, Mail, XCircle } from 'lucide-react';
+import { LogIn, LogOut, Check, X, Plus, Image, Video, Mail } from 'lucide-react';
 import toast, { Toaster } from 'react-hot-toast';
 
 type Post = {
@@ -12,42 +12,6 @@ type Post = {
   media_url?: string;
   media_type?: 'image' | 'video';
   client_email?: string;
-};
-
-type MediaModalProps = {
-  mediaUrl: string;
-  mediaType: 'image' | 'video';
-  onClose: () => void;
-};
-
-const MediaModal: React.FC<MediaModalProps> = ({ mediaUrl, mediaType, onClose }) => {
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-75 z-50 flex items-center justify-center p-4">
-      <div className="relative max-w-4xl w-full mx-auto">
-        <button
-          onClick={onClose}
-          className="absolute -top-4 -right-4 text-white hover:text-gray-200 z-10"
-        >
-          <XCircle className="w-8 h-8" />
-        </button>
-        <div className="bg-white rounded-lg p-2">
-          {mediaType === 'image' ? (
-            <img
-              src={mediaUrl}
-              alt="Expanded media"
-              className="w-full h-auto max-h-[80vh] object-contain rounded"
-            />
-          ) : (
-            <video
-              src={mediaUrl}
-              controls
-              className="w-full h-auto max-h-[80vh] object-contain rounded"
-            />
-          )}
-        </div>
-      </div>
-    </div>
-  );
 };
 
 function App() {
@@ -67,10 +31,6 @@ function App() {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [clientEmails, setClientEmails] = useState<string[]>([]);
   const [showNewEmailInput, setShowNewEmailInput] = useState(false);
-  const [selectedMedia, setSelectedMedia] = useState<{
-    url: string;
-    type: 'image' | 'video';
-  } | null>(null);
 
   const isStagelink = session?.user?.email === 'geral@stagelink.pt';
 
@@ -245,39 +205,14 @@ function App() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const { data, error: signInError } = await supabase.auth.signInWithPassword({
+      const { error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
-
-      if (signInError) {
-        // Check if it's an invalid user error
-        if (signInError.message.includes('Invalid login credentials')) {
-          // Try to sign up to check if the user exists
-          const { error: signUpError } = await supabase.auth.signUp({
-            email,
-            password,
-          });
-
-          if (signUpError) {
-            // If sign up fails with "User already registered", it means the password was wrong
-            if (signUpError.message.includes('User already registered')) {
-              toast.error('Incorrect password');
-            } else {
-              toast.error('This email is not registered in our system');
-            }
-          } else {
-            toast.error('This email is not registered in our system');
-          }
-        } else {
-          toast.error('An error occurred during login');
-        }
-        return;
-      }
-
+      if (error) throw error;
       toast.success('Logged in successfully');
     } catch (error: any) {
-      toast.error('An error occurred during login');
+      toast.error(error.message);
     }
   };
 
@@ -364,13 +299,6 @@ function App() {
   return (
     <div className="min-h-screen bg-gray-100">
       <Toaster position="top-right" />
-      {selectedMedia && (
-        <MediaModal
-          mediaUrl={selectedMedia.url}
-          mediaType={selectedMedia.type}
-          onClose={() => setSelectedMedia(null)}
-        />
-      )}
       <nav className="bg-white shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16">
@@ -618,14 +546,8 @@ function App() {
                         <div className="text-sm text-gray-900">{post.platform}</div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        {post.media_url && post.media_type && (
-                          <div 
-                            className="h-20 w-20 cursor-pointer transition-transform hover:scale-105"
-                            onClick={() => setSelectedMedia({
-                              url: post.media_url!,
-                              type: post.media_type as 'image' | 'video'
-                            })}
-                          >
+                        {post.media_url && (
+                          <div className="h-20 w-20">
                             {post.media_type === 'image' ? (
                               <img
                                 src={post.media_url}
@@ -636,6 +558,7 @@ function App() {
                               <video
                                 src={post.media_url}
                                 className="h-full w-full object-cover rounded"
+                                controls
                               />
                             )}
                           </div>

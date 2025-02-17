@@ -1,13 +1,545 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Vite + React + TS</title>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-  </body>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Social Media Approval System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+</head>
+<body class="min-h-screen bg-gray-100">
+    <!-- Login Form -->
+    <div id="loginForm" class="min-h-screen bg-gray-100 flex items-center justify-center">
+        <div class="bg-white p-8 rounded-lg shadow-md w-96">
+            <div class="text-center mb-8">
+                <i data-lucide="mail" class="w-12 h-12 text-blue-600 mx-auto mb-4"></i>
+                <h1 class="text-2xl font-bold text-gray-900">Social Media Approval System</h1>
+                <p class="mt-2 text-sm text-gray-600">
+                    Please log in with your email to review and approve posts
+                </p>
+            </div>
+            <form id="loginFormElement" class="space-y-4">
+                <div>
+                    <label for="email" class="block text-sm font-medium text-gray-700">
+                        Email
+                    </label>
+                    <input
+                        id="email"
+                        type="email"
+                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                        required
+                        placeholder="your@email.com"
+                    >
+                </div>
+                <div>
+                    <label for="password" class="block text-sm font-medium text-gray-700">
+                        Password
+                    </label>
+                    <input
+                        id="password"
+                        type="password"
+                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                        required
+                        placeholder="••••••••"
+                    >
+                </div>
+                <button
+                    type="submit"
+                    class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                >
+                    <i data-lucide="log-in" class="w-5 h-5 mr-2"></i>
+                    Login
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Main Dashboard -->
+    <div id="dashboard" class="hidden">
+        <nav class="bg-white shadow-sm">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex justify-between h-16">
+                    <div class="flex items-center">
+                        <h1 class="text-xl font-semibold">Social Media Approval Dashboard</h1>
+                    </div>
+                    <div class="flex items-center">
+                        <div class="mr-4">
+                            <span class="text-sm text-gray-500">Logged in as</span>
+                            <span id="userEmail" class="ml-2 text-sm font-medium text-gray-900"></span>
+                        </div>
+                        <button
+                            id="logoutButton"
+                            class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700"
+                        >
+                            <i data-lucide="log-out" class="w-5 h-5 mr-2"></i>
+                            Logout
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <main class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+            <div class="px-4 py-6 sm:px-0">
+                <!-- Client Welcome Message -->
+                <div id="clientWelcome" class="bg-white rounded-lg shadow-sm p-6 mb-6 hidden">
+                    <h2 class="text-lg font-medium text-gray-900">Welcome back!</h2>
+                    <p class="mt-1 text-sm text-gray-500">
+                        Here are your pending social media posts for review. Please approve or reject them.
+                    </p>
+                </div>
+
+                <!-- Stagelink Controls -->
+                <div id="stagelinkControls" class="mb-6 hidden">
+                    <button
+                        id="addPostButton"
+                        class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
+                    >
+                        <i data-lucide="plus" class="w-5 h-5 mr-2"></i>
+                        Add New Post
+                    </button>
+                </div>
+
+                <!-- Add Post Form -->
+                <div id="addPostForm" class="bg-white rounded-lg shadow p-6 mb-6 hidden">
+                    <h2 class="text-lg font-semibold mb-4">Add New Social Media Post</h2>
+                    <form id="newPostForm" class="space-y-4">
+                        <div class="space-y-2">
+                            <label for="clientEmail" class="block text-sm font-medium text-gray-700">
+                                Client Email
+                            </label>
+                            <div class="flex items-center space-x-2">
+                                <select
+                                    id="clientEmail"
+                                    class="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                                    required
+                                >
+                                    <option value="">Select a client email</option>
+                                    <option value="new">Add new email...</option>
+                                </select>
+                            </div>
+                            <div id="newEmailInput" class="hidden">
+                                <input
+                                    type="email"
+                                    id="newClientEmail"
+                                    placeholder="Enter client email"
+                                    class="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                                >
+                            </div>
+                        </div>
+                        <div>
+                            <label for="platform" class="block text-sm font-medium text-gray-700">
+                                Platform
+                            </label>
+                            <select
+                                id="platform"
+                                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                            >
+                                <option value="instagram">Instagram</option>
+                                <option value="facebook">Facebook</option>
+                                <option value="twitter">Twitter</option>
+                                <option value="linkedin">LinkedIn</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="content" class="block text-sm font-medium text-gray-700">
+                                Content
+                            </label>
+                            <textarea
+                                id="content"
+                                rows="4"
+                                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                                required
+                            ></textarea>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">
+                                Media (Image or Video)
+                            </label>
+                            <div class="mt-1 flex items-center">
+                                <input
+                                    type="file"
+                                    accept="image/*,video/*"
+                                    class="sr-only"
+                                    id="media-upload"
+                                >
+                                <label
+                                    for="media-upload"
+                                    class="cursor-pointer inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+                                >
+                                    <i data-lucide="plus" class="w-5 h-5 mr-2"></i>
+                                    Upload Media
+                                </label>
+                                <span id="selectedFileName" class="ml-4 text-sm text-gray-600"></span>
+                            </div>
+                        </div>
+                        <div class="flex space-x-4">
+                            <button
+                                type="submit"
+                                class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
+                            >
+                                Submit Post
+                            </button>
+                            <button
+                                type="button"
+                                id="cancelPostButton"
+                                class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+                            >
+                                Cancel
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Posts Table -->
+                <div class="bg-white rounded-lg shadow">
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Content
+                                    </th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Platform
+                                    </th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Media
+                                    </th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Status
+                                    </th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Created At
+                                    </th>
+                                    <th id="clientHeader" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden">
+                                        Client
+                                    </th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Actions
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody id="postsTableBody" class="bg-white divide-y divide-gray-200">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // Wait for all scripts to load
+        window.addEventListener('load', () => {
+            // Initialize Supabase client
+            const { createClient } = supabase;
+            const supabaseClient = createClient(
+                'https://ctyqetwzowcqqxcwiukd.supabase.co',
+                'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN0eXFldHd6b3djcXF4Y3dpdWtkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzk4MjA2NzksImV4cCI6MjA1NTM5NjY3OX0.V1Fd4siW6lP5HnfWK-evSae_CXk7pAX0luZZnbcCe3o'
+            );
+
+            // Initialize Lucide icons
+            lucide.createIcons();
+
+            let session = null;
+            let clientEmails = [];
+
+            // Show toast message
+            function showToast(message, type = 'success') {
+                Toastify({
+                    text: message,
+                    duration: 3000,
+                    gravity: "top",
+                    position: "right",
+                    backgroundColor: type === 'success' ? "#4CAF50" : "#f44336",
+                }).showToast();
+            }
+
+            // Handle login
+            document.getElementById('loginFormElement').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const email = document.getElementById('email').value;
+                const password = document.getElementById('password').value;
+
+                try {
+                    const { data, error } = await supabaseClient.auth.signInWithPassword({
+                        email,
+                        password,
+                    });
+
+                    if (error) throw error;
+                    
+                    showToast('Logged in successfully');
+                    session = data.session;
+                    updateUI();
+                    fetchPosts();
+                } catch (error) {
+                    showToast(error.message, 'error');
+                }
+            });
+
+            // Handle logout
+            document.getElementById('logoutButton').addEventListener('click', async () => {
+                await supabaseClient.auth.signOut();
+                session = null;
+                updateUI();
+                showToast('Logged out successfully');
+            });
+
+            // Update UI based on session
+            function updateUI() {
+                const loginForm = document.getElementById('loginForm');
+                const dashboard = document.getElementById('dashboard');
+                const userEmail = document.getElementById('userEmail');
+                const stagelinkControls = document.getElementById('stagelinkControls');
+                const clientWelcome = document.getElementById('clientWelcome');
+                const clientHeader = document.getElementById('clientHeader');
+
+                if (session) {
+                    loginForm.classList.add('hidden');
+                    dashboard.classList.remove('hidden');
+                    userEmail.textContent = session.user.email;
+
+                    const isStagelink = session.user.email === 'geral@stagelink.pt';
+                    stagelinkControls.classList.toggle('hidden', !isStagelink);
+                    clientWelcome.classList.toggle('hidden', isStagelink);
+                    clientHeader.classList.toggle('hidden', !isStagelink);
+
+                    if (isStagelink) {
+                        fetchClientEmails();
+                    }
+                } else {
+                    loginForm.classList.remove('hidden');
+                    dashboard.classList.add('hidden');
+                }
+            }
+
+            // Fetch posts
+            async function fetchPosts() {
+                const { data, error } = await supabaseClient
+                    .from('social_media_posts')
+                    .select('*')
+                    .order('created_at', { ascending: false });
+
+                if (error) {
+                    showToast('Error fetching posts', 'error');
+                    return;
+                }
+
+                const tbody = document.getElementById('postsTableBody');
+                tbody.innerHTML = '';
+
+                data.forEach(post => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td class="px-6 py-4 whitespace-normal">
+                            <div class="text-sm text-gray-900">${post.content}</div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm text-gray-900">${post.platform}</div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            ${post.media_url ? `
+                                <div class="h-20 w-20">
+                                    ${post.media_type === 'image' 
+                                        ? `<img src="${post.media_url}" alt="Post media" class="h-full w-full object-cover rounded">`
+                                        : `<video src="${post.media_url}" class="h-full w-full object-cover rounded" controls></video>`
+                                    }
+                                </div>
+                            ` : ''}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                                post.status === 'approved'
+                                    ? 'bg-green-100 text-green-800'
+                                    : post.status === 'rejected'
+                                    ? 'bg-red-100 text-red-800'
+                                    : 'bg-yellow-100 text-yellow-800'
+                            }">
+                                ${post.status}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm text-gray-900">
+                                ${new Date(post.created_at).toLocaleDateString()}
+                            </div>
+                        </td>
+                        ${session?.user?.email === 'geral@stagelink.pt' ? `
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="text-sm text-gray-900">${post.client_email || ''}</div>
+                            </td>
+                        ` : ''}
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                            ${post.status === 'pending' && session?.user?.email !== 'geral@stagelink.pt' ? `
+                                <div class="flex space-x-2">
+                                    <button onclick="handleApproval('${post.id}', true)" class="text-green-600 hover:text-green-900">
+                                        <i data-lucide="check" class="w-5 h-5"></i>
+                                    </button>
+                                    <button onclick="handleApproval('${post.id}', false)" class="text-red-600 hover:text-red-900">
+                                        <i data-lucide="x" class="w-5 h-5"></i>
+                                    </button>
+                                </div>
+                            ` : ''}
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+
+                // Reinitialize Lucide icons for new content
+                lucide.createIcons();
+            }
+
+            // Fetch client emails
+            async function fetchClientEmails() {
+                const { data, error } = await supabaseClient
+                    .from('social_media_posts')
+                    .select('client_email')
+                    .not('client_email', 'is', null);
+
+                if (error) {
+                    showToast('Error fetching client emails', 'error');
+                    return;
+                }
+
+                clientEmails = [...new Set(data.map(post => post.client_email))]
+                    .filter(email => email && email !== 'geral@stagelink.pt');
+
+                const select = document.getElementById('clientEmail');
+                select.innerHTML = `
+                    <option value="">Select a client email</option>
+                    ${clientEmails.map(email => `<option value="${email}">${email}</option>`).join('')}
+                    <option value="new">Add new email...</option>
+                `;
+            }
+
+            // Handle approval
+            window.handleApproval = async function(postId, approved) {
+                const { error } = await supabaseClient
+                    .from('social_media_posts')
+                    .update({ 
+                        status: approved ? 'approved' : 'rejected',
+                        approved_at: new Date().toISOString()
+                    })
+                    .eq('id', postId);
+
+                if (error) {
+                    showToast('Error updating post status', 'error');
+                } else {
+                    showToast(`Post ${approved ? 'approved' : 'rejected'} successfully`);
+                    fetchPosts();
+                }
+            }
+
+            // Handle add post form
+            document.getElementById('addPostButton')?.addEventListener('click', () => {
+                document.getElementById('addPostForm').classList.remove('hidden');
+                document.getElementById('addPostButton').classList.add('hidden');
+            });
+
+            document.getElementById('cancelPostButton')?.addEventListener('click', () => {
+                document.getElementById('addPostForm').classList.add('hidden');
+                document.getElementById('addPostButton').classList.remove('hidden');
+                document.getElementById('newPostForm').reset();
+                document.getElementById('newEmailInput').classList.add('hidden');
+                document.getElementById('selectedFileName').textContent = '';
+            });
+
+            // Handle client email selection
+            document.getElementById('clientEmail')?.addEventListener('change', (e) => {
+                const newEmailInput = document.getElementById('newEmailInput');
+                if (e.target.value === 'new') {
+                    newEmailInput.classList.remove('hidden');
+                } else {
+                    newEmailInput.classList.add('hidden');
+                }
+            });
+
+            // Handle file upload
+            document.getElementById('media-upload')?.addEventListener('change', (e) => {
+                const file = e.target.files?.[0];
+                if (file) {
+                    document.getElementById('selectedFileName').textContent = file.name;
+                }
+            });
+
+            // Handle new post submission
+            document.getElementById('newPostForm')?.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const formData = new FormData(e.target);
+                const clientEmail = formData.get('clientEmail') === 'new' 
+                    ? document.getElementById('newClientEmail').value 
+                    : formData.get('clientEmail');
+                
+                if (!clientEmail) {
+                    showToast('Please provide a client email', 'error');
+                    return;
+                }
+
+                const file = document.getElementById('media-upload').files[0];
+                let mediaUrl = '';
+                let mediaType = '';
+
+                if (file) {
+                    const fileType = file.type.startsWith('image/') ? 'image' : 'video';
+                    const fileExt = file.name.split('.').pop();
+                    const fileName = `${Math.random().toString(36).substring(2)}.${fileExt}`;
+                    const filePath = `${session.user.id}/${fileName}`;
+
+                    const { error: uploadError, data } = await supabaseClient.storage
+                        .from('media')
+                        .upload(filePath, file);
+
+                    if (uploadError) {
+                        showToast('Error uploading media', 'error');
+                        return;
+                    }
+
+                    const { data: { publicUrl } } = supabaseClient.storage
+                        .from('media')
+                        .getPublicUrl(filePath);
+
+                    mediaUrl = publicUrl;
+                    mediaType = fileType;
+                }
+
+                const { error } = await supabaseClient
+                    .from('social_media_posts')
+                    .insert([{
+                        content: formData.get('content'),
+                        platform: formData.get('platform'),
+                        user_id: session.user.id,
+                        media_url: mediaUrl || null,
+                        media_type: mediaType || null,
+                        client_email: clientEmail
+                    }]);
+
+                if (error) {
+                    showToast('Error creating post', 'error');
+                } else {
+                    showToast('Post created successfully');
+                    document.getElementById('addPostForm').classList.add('hidden');
+                    document.getElementById('addPostButton').classList.remove('hidden');
+                    document.getElementById('newPostForm').reset();
+                    document.getElementById('newEmailInput').classList.add('hidden');
+                    document.getElementById('selectedFileName').textContent = '';
+                    fetchPosts();
+                    fetchClientEmails();
+                }
+            });
+
+            // Check for existing session on page load
+            supabaseClient.auth.getSession().then(({ data: { session: currentSession } }) => {
+                session = currentSession;
+                updateUI();
+                if (session) {
+                    fetchPosts();
+                }
+            });
+        });
+    </script>
+</body>
 </html>
