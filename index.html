@@ -114,6 +114,7 @@
                             <div class="flex items-center space-x-2">
                                 <select
                                     id="clientEmail"
+                                    name="clientEmail"
                                     class="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                                     required
                                 >
@@ -125,6 +126,7 @@
                                 <input
                                     type="email"
                                     id="newClientEmail"
+                                    name="newClientEmail"
                                     placeholder="Enter client email"
                                     class="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                                 >
@@ -136,7 +138,9 @@
                             </label>
                             <select
                                 id="platform"
+                                name="platform"
                                 class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                                required
                             >
                                 <option value="instagram">Instagram</option>
                                 <option value="facebook">Facebook</option>
@@ -150,6 +154,7 @@
                             </label>
                             <textarea
                                 id="content"
+                                name="content"
                                 rows="4"
                                 class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                                 required
@@ -165,6 +170,7 @@
                                     accept="image/*,video/*"
                                     class="sr-only"
                                     id="media-upload"
+                                    name="media"
                                 >
                                 <label
                                     for="media-upload"
@@ -470,12 +476,31 @@
             document.getElementById('newPostForm')?.addEventListener('submit', async (e) => {
                 e.preventDefault();
                 const formData = new FormData(e.target);
-                const clientEmail = formData.get('clientEmail') === 'new' 
-                    ? document.getElementById('newClientEmail').value 
-                    : formData.get('clientEmail');
                 
-                if (!clientEmail) {
+                // Get the client email based on selection
+                let finalClientEmail = '';
+                const selectedOption = document.getElementById('clientEmail').value;
+                
+                if (selectedOption === 'new') {
+                    finalClientEmail = document.getElementById('newClientEmail').value;
+                } else {
+                    finalClientEmail = selectedOption;
+                }
+                
+                if (!finalClientEmail) {
                     showToast('Please provide a client email', 'error');
+                    return;
+                }
+
+                const content = formData.get('content');
+                if (!content) {
+                    showToast('Please provide content for the post', 'error');
+                    return;
+                }
+
+                const platform = formData.get('platform');
+                if (!platform) {
+                    showToast('Please select a platform', 'error');
                     return;
                 }
 
@@ -509,16 +534,17 @@
                 const { error } = await supabaseClient
                     .from('social_media_posts')
                     .insert([{
-                        content: formData.get('content'),
-                        platform: formData.get('platform'),
+                        content: content,
+                        platform: platform,
                         user_id: session.user.id,
                         media_url: mediaUrl || null,
                         media_type: mediaType || null,
-                        client_email: clientEmail
+                        client_email: finalClientEmail
                     }]);
 
                 if (error) {
                     showToast('Error creating post', 'error');
+                    console.error('Error:', error);
                 } else {
                     showToast('Post created successfully');
                     document.getElementById('addPostForm').classList.add('hidden');
