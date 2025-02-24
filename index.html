@@ -68,6 +68,8 @@
                         <div class="mr-4">
                             <span class="text-sm text-gray-500">Logged in as</span>
                             <span id="userEmail" class="ml-2 text-sm font-medium text-gray-900"></span>
+                            <span class="mx-1 text-sm text-gray-500">-</span>
+                            <span id="userName" class="text-sm font-medium text-gray-900"></span>
                         </div>
                         <button
                             id="logoutButton"
@@ -253,6 +255,19 @@
             let session = null;
             let clientEmails = [];
 
+            // Client name mapping
+            const clientNames = {
+                'samuelaura24@gmail.com': 'Samuel Laura',
+                'tiagocodinha1997@gmail.com': 'Tiago Codinha',
+                'geral@stagelink.pt': 'Stagelink',
+                'jonhy.rijo@gmail.com': 'João Rijo'
+            };
+
+            // Function to get client name from email
+            function getClientName(email) {
+                return clientNames[email] || email;
+            }
+
             // Show toast message
             function showToast(message, type = 'success') {
                 Toastify({
@@ -300,6 +315,7 @@
                 const loginForm = document.getElementById('loginForm');
                 const dashboard = document.getElementById('dashboard');
                 const userEmail = document.getElementById('userEmail');
+                const userName = document.getElementById('userName');
                 const stagelinkControls = document.getElementById('stagelinkControls');
                 const clientWelcome = document.getElementById('clientWelcome');
                 const clientHeader = document.getElementById('clientHeader');
@@ -308,11 +324,12 @@
                     loginForm.classList.add('hidden');
                     dashboard.classList.remove('hidden');
                     userEmail.textContent = session.user.email;
+                    userName.textContent = getClientName(session.user.email);
 
                     const isStagelink = session.user.email === 'geral@stagelink.pt';
-                    stagelinkControls.classList.toggle('hidden', !isStagelink);
-                    clientWelcome.classList.toggle('hidden', isStagelink);
-                    clientHeader.classList.toggle('hidden', !isStagelink);
+                    stagelinkControls?.classList.toggle('hidden', !isStagelink);
+                    clientWelcome?.classList.toggle('hidden', isStagelink);
+                    clientHeader?.classList.toggle('hidden', !isStagelink);
 
                     if (isStagelink) {
                         fetchClientEmails();
