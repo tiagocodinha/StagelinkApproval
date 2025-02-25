@@ -144,11 +144,23 @@
                                 class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                                 required
                             >
-                                <option value="instagram">Instagram</option>
-                                <option value="facebook">Facebook</option>
-                                <option value="twitter">Twitter</option>
-                                <option value="linkedin">LinkedIn</option>
+                                <option value="storie">Storie</option>
+                                <option value="post">Post</option>
+                                <option value="reels">Reels</option>
+                                <option value="tiktok">TikTok</option>
                             </select>
+                        </div>
+                        <div>
+                            <label for="action" class="block text-sm font-medium text-gray-700">
+                                Caption
+                            </label>
+                            <textarea
+                                id="action"
+                                name="action"
+                                rows="4"
+                                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                                required
+                            ></textarea>
                         </div>
                         <div>
                             <label for="content" class="block text-sm font-medium text-gray-700">
@@ -354,6 +366,146 @@
                 if (selectedOption === 'new') {
                     clientEmail = document.getElementById('newClientEmail').value;
                     if (!clientEmail) {
+                        showToast('Please enter a new client email', 'error');
+                        return;
+                    }
+                } else if (!selectedOption) {
+                    showToast('Please select a client email', 'error');
+                    return;
+                } else {
+                    clientEmail = selectedOption;
+                }
+
+                const action = document.getElementById('action').value;
+                const content = document.getElementById('content').value;
+                const platform = document.getElementById('platform').value;
+                const file = document.getElementById('media-upload').files[0];
+                
+                let mediaUrl = '';
+                let mediaType = '';
+
+                if (file) {
+                    const fileType = file.type.startsWith('image/') ? 'image' : 'video';
+                    const fileExt = file.name.split('.').pop();
+                    const fileName = `${Math.random().toString(36).substring(2)}.${fileExt}`;
+                    const filePath = `${session.user.id}/${fileName}`;
+
+                    const { error: uploadError, data } = await supabaseClient.storage
+                        .from('media')
+                        .upload(filePath, file);
+
+                    if (uploadError) {
+                        showToast('Error uploading media', 'error');
+                        return;
+                    }
+
+                    const { data: { publicUrl } } = supabaseClient.storage
+                        .from('media')
+                        .getPublicUrl(filePath);
+
+                    mediaUrl = publicUrl;
+                    mediaType = fileType;
+                }
+
+                const { error } = await supabaseClient
+                    .from('social_media_posts')
+                    .insert([{
+                        action,
+                        content,
+                        platform,
+                        user_id: session.user.id,
+                        media_url: mediaUrl || null,
+                        media_type: mediaType || null,
+                        client_email: clientEmail
+                    }]);
+
+                if (error) {
+                    showToast('Error creating post', 'error');
+                    console.error('Post creation error:', error);
+                } else {
+                    showToast('Post created successfully');
+                    document.getElementById('newPostForm').reset();
+                    document.getElementById('addPostForm').classList.add('hidden');
+                    document.getElementById('addPostButton').classList.remove('hidden');
+                    document.getElementById('newEmailInput').classList.add('hidden');
+                    document.getElementById('selectedFileName').textContent = '';
+                    fetchPosts();
+                }
+            });
+
+            // Handle client email selection
+            document.getElementById('clientEmail')?.addEventListener('change', (e) => {
+                const newEmailInput = document.getElementById('newEmailInput');
+                if (e.target.value === 'new') {
+                    newEmailInput.classList.remove('hidden');
+                } else {
+                    newEmailInput.classList.add('hidden');
+                }
+            });
+
+            // Handle file upload
+            document.getElementById('media-upload')?.addEventListener('change', (e) => {
+                const file = e.target.files?.[0];
+                if (file) {
+                    document.getElementById('selectedFileName').textContent = file.name;
+                }
+            });
+
+            // Handle add post form
+            document.getElementById('addPostButton')?.addEventListener('click', () => {
+                document.getElementById('addPostForm').classList.remove('hidden');
+                document.getElementById('addPostButton').classList.add('hidden');
+            });
+
+            document.getElementById('cancelPostButton')?.addEventListener('click', () => {
+                document.getElementById('addPostForm').classList.add('hidden');
+                document.getElementById('addPostButton').classList.remove('hidden');
+                document.getElementById('newPostForm').reset();
+                document.getElementById('newEmailInput').classList.add('hidden');
+                document.getElementById('selectedFileName').textContent = '';
+            });
+
+            // Fetch client emails
+            async function fetchClientEmails() {
+                const { data, error } = await supabaseClient
+                    .from('social_media_posts')
+                    .select('client_email')
+                    .not('client_email', 'is', null);
+
+                if (error) {
+                    showToast('Error fetching client emails', 'error');
+                    return;
+                }
+
+                clientEmails = [...new Set(data.map(post => post.client_email))]
+                    .filter(email => email && email !== 'geral@stagelink.pt');
+
+                const select = document.getElementById('clientEmail');
+                select.innerHTML = `
+                    <option value="">Select a client email</option>
+                    ${clientEmails.map(email => `<option value="${email}">${email}</option>`).join('')}
+                    <option value="new">Add new email...</option>
+                `;
+            }
+
+            // Handle approval
+            window.handleApproval = async function(postId, approved) {
+                const { error } = await supabaseClient
+                    .from('social_media_posts')
+                    .update({ 
+                        status: approved ? 'approved' : 'rejected',
+                        approved_at: new Date().toISOString()
+                    })
+                    .eq('id', postId);
+
+                if (error) {
+                    showToast('Error updating post status', 'error');
+                } else {
+                    showToast(`Post ${approved ? 'approved' : 'rejected'} successfully`);
+                    fetchPosts();
+                }
+            }
+
             // Fetch posts
             async function fetchPosts() {
                 const { data, error } = await supabaseClient
@@ -372,6 +524,9 @@
                 data.forEach(post => {
                     const tr = document.createElement('tr');
                     tr.innerHTML = `
+                        <td class="px-6 py-4 whitespace-normal">
+                            <div class="text-sm text-gray-900">${post.action || ''}</div>
+                        </td>
                         <td class="px-6 py-4 whitespace-normal">
                             <div class="text-sm text-gray-900">${post.content}</div>
                         </td>
@@ -425,7 +580,6 @@
                     tbody.appendChild(tr);
                 });
 
-                // Reinitialize Lucide icons for new content
                 lucide.createIcons();
             }
 
