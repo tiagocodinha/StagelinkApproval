@@ -208,7 +208,7 @@
                                         </label>
                                         <span id="selectedFileName" class="ml-4 text-sm text-gray-600"></span>
                                     </div>
-                                    <div id="mediaPreview" class="mt-4 hidden">
+<div id="mediaPreview" class="mt-4 hidden">
                                         <img id="mediaPreviewImage" class="h-20 w-20 object-cover rounded" alt="Preview">
                                     </div>
                                 </div>
@@ -647,12 +647,12 @@
         // Handle file upload
         document.getElementById('media-upload')?.addEventListener('change', (e) => {
             const file = e.target.files?.[0];
-            const preview = document.getElementById('mediaPreview');
+const preview = document.getElementById('mediaPreview');
             const previewImage = document.getElementById('mediaPreviewImage');
             
             if (file) {
                 document.getElementById('selectedFileName').textContent = file.name;
-                
+
                 const reader = new FileReader();
                 reader.onload = (event) => {
                     previewImage.src = event.target.result;
