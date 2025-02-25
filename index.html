@@ -576,9 +576,8 @@
             
             // Handle Google Drive links
             if (url.includes('drive.google.com')) {
-                // Convert to direct download link if it's a viewing link
-                url = url.replace(/\/view\?usp=sharing$/, '').replace('file/d/', 'uc?export=view&id=').replace('/view', '');
-            }
+            url = url.replace(/\/view\?usp=sharing$/, '').replace('file/d/', 'uc?export=view&id=');
+           }
 
             return type === 'image' 
                 ? `<img src="${url}" alt="Post media" class="h-full w-full object-cover rounded" onerror="this.onerror=null; this.src='https://via.placeholder.com/150?text=Error+Loading+Image'">`
