@@ -553,84 +553,84 @@
         });
 
         // Modified fetchPosts function to better handle media display
-        async function fetchPosts() {
-            const { data, error } = await supabaseClient
-                .from('social_media_posts')
-                .select('*')
-                .order('created_at', { ascending: false });
+    async function fetchPosts() {
+    const { data, error } = await supabaseClient
+        .from('social_media_posts')
+        .select('*')
+        .order('created_at', { ascending: false });
 
-            if (error) {
-                showToast('Error fetching posts', 'error');
-                return;
+    if (error) {
+        showToast('Error fetching posts', 'error');
+        return;
+    }
+
+    const tbody = document.getElementById('postsTableBody');
+    tbody.innerHTML = '';
+
+    data.forEach(post => {
+        const tr = document.createElement('tr');
+        
+        // Helper function to create media element
+        const createMediaElement = (url, type) => {
+            if (!url) return '';
+            
+            // Handle Google Drive links
+            if (url.includes('drive.google.com')) {
+                // Convert to direct download link if it's a viewing link
+                url = url.replace(/\/view\?usp=sharing$/, '').replace('file/d/', 'uc?export=view&id=').replace('/view', '');
             }
 
-            const tbody = document.getElementById('postsTableBody');
-            tbody.innerHTML = '';
+            return type === 'image' 
+                ? `<img src="${url}" alt="Post media" class="h-full w-full object-cover rounded" onerror="this.onerror=null; this.src='https://via.placeholder.com/150?text=Error+Loading+Image'">`
+                : `<video src="${url}" class="h-full w-full object-cover rounded" controls onerror="this.style.display='none'"></video>`;
+        };
 
-            data.forEach(post => {
-                const tr = document.createElement('tr');
-                
-                // Helper function to create media element
-                const createMediaElement = (url, type) => {
-                    if (!url) return '';
-                    
-                    // Handle Google Drive links
-                    if (url.includes('drive.google.com')) {
-                        // Convert to direct download link if it's a viewing link
-                        url = url.replace(/\/view\?usp=sharing$/, '').replace('file/d/', 'uc?export=view&id=').replace('/view', '');
-                    }
+        tr.innerHTML = `
+            <td class="px-6 py-4 whitespace-normal">
+                <div class="text-sm text-gray-900">${post.caption || ''}</div>
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap">
+                <div class="text-sm text-gray-900">${post.platform}</div>
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap">
+                ${post.media_url ? `
+                    <div class="h-20 w-20">
+                        ${createMediaElement(post.media_url, post.media_type)}
+                    </div>
+                ` : ''}
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap">
+                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                    post.status === 'approved'
+                        ? 'bg-green-100 text-green-800'
+                        : post.status === 'rejected'
+                        ? 'bg-red-100 text-red-800'
+                        : 'bg-yellow-100 text-yellow-800'
+                }">
+                    ${post.status}
+                </span>
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap">
+                <div class="text-sm text-gray-900">
+                    ${formatDateTime(post.scheduled_date)}
+                </div>
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap">
+                <div class="text-sm text-gray-900">
+                    ${formatDateTime(post.created_at)}
+                </div>
+            </td>
+            ${session?.user?.email === 'geral@stagelink.pt' ? `
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="text-sm text-gray-900">${post.client_email || ''}</div>
+                </td>
+            ` : ''}
+        `;
+        tbody.appendChild(tr);
+    });
 
-                    return type === 'image' 
-                        ? `<img src="${url}" alt="Post media" class="h-full w-full object-cover rounded" onerror="this.onerror=null; this.src='https://via.placeholder.com/150?text=Error+Loading+Image'">`
-                        : `<video src="${url}" class="h-full w-full object-cover rounded" controls onerror="this.style.display='none'"></video>`;
-                };
-
-                tr.innerHTML = `
-                    <td class="px-6 py-4 whitespace-normal">
-                        <div class="text-sm text-gray-900">${post.caption || ''}</div>
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap">
-                        <div class="text-sm text-gray-900">${post.platform}</div>
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap">
-                        ${post.media_url ? `
-                            <div class="h-20 w-20">
-                                ${createMediaElement(post.media_url, post.media_type)}
-                            </div>
-                        ` : ''}
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap">
-                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                            post.status === 'approved'
-                                ? 'bg-green-100 text-green-800'
-                                : post.status === 'rejected'
-                                ? 'bg-red-100 text-red-800'
-                                : 'bg-yellow-100 text-yellow-800'
-                        }">
-                            ${post.status}
-                        </span>
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap">
-                        <div class="text-sm text-gray-900">
-                            ${formatDateTime(post.scheduled_date)}
-                        </div>
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap">
-                        <div class="text-sm text-gray-900">
-                            ${formatDateTime(post.created_at)}
-                        </div>
-                    </td>
-                    ${session?.user?.email === 'geral@stagelink.pt' ? `
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <div class="text-sm text-gray-900">${post.client_email || ''}</div>
-                        </td>
-                    ` : ''}
-                `;
-                tbody.appendChild(tr);
-            });
-
-            lucide.createIcons();
-        }
+    lucide.createIcons();
+}
 
         // Handle client email selection
         document.getElementById('clientEmail')?.addEventListener('change', (e) => {
